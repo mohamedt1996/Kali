@@ -14,6 +14,12 @@ for every run; the rolling tag and apt package versions can change between build
 The image ZIP is retained as an Actions artifact for seven days, together with a
 randomly generated desktop/sudo password. No root password login is enabled.
 
+## Download releases
+
+The [Releases page](https://github.com/mohamedt1996/Kali/releases) contains experimental image builds with `volkspcimgarm64.zip`, `SHA256SUMS`, and `credentials.txt`. The matching desktop/sudo credentials are also shown in the release notes. Change the public initial password with `passwd` after installation.
+
+`.github/workflows/release.yml` publishes successful `main` image builds automatically. To publish a specific successful build, run **Release VolksPC Kali image** manually with its run ID. Releases are marked as experimental prereleases; userspace checks do not establish tablet hardware compatibility.
+
 ## Build checks
 
 - Native ARM64 userspace and UID 1000 for the `desktop` login.
