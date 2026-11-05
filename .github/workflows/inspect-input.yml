@@ -1,0 +1,72 @@
+name: Inspect VolksPC input integration
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-input.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/cache/restore@v4
+        id: source
+        with:
+          path: ${{ runner.temp }}/volkspc-source
+          key: volkspc-source-KdFBkaBB-v1
+      - name: Fetch source if cache is unavailable
+        if: steps.source.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y megatools
+          megadl --path "$RUNNER_TEMP/source.zip" 'https://mega.nz/file/KdFBkaBB#1piuceTTQsi5NlhnUAWqsa6UbPoL-KMunXK0LVa4AdM'
+          mkdir -p "$RUNNER_TEMP/volkspc-source"
+          unzip -q "$RUNNER_TEMP/source.zip" -d "$RUNNER_TEMP/volkspc-source"
+      - name: Inspect vendor modifications and custom programs
+        run: |
+          mkdir source-mount
+          sudo mount -t ext4 -o loop,ro,noload "$RUNNER_TEMP/volkspc-source/linuxfs.img" source-mount
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, subprocess
+          root=Path('source-mount')
+          status=(root/'var/lib/dpkg/status').read_text()
+          names=[]
+          for p in status.split('\n\n'):
+              if 'Status: hold ' in p:
+                  names.append(p.splitlines()[0].split(': ',1)[1])
+          info=root/'var/lib/dpkg/info'
+          for name in names:
+              print('HELD PACKAGE',name)
+              for f in info.glob(name+'*.md5sums'):
+                  for line in f.read_text().splitlines():
+                      checksum,rel=line.split(None,1)
+                      p=root/rel
+                      if p.is_file():
+                          actual=hashlib.md5(p.read_bytes()).hexdigest()
+                          if actual!=checksum:
+                              print('MODIFIED',rel,'bytes',p.stat().st_size)
+          owned=set()
+          for f in info.glob('*.list'):
+              owned.update(line.lstrip('/') for line in f.read_text().splitlines())
+          for p in sorted((root/'usr/bin').iterdir()):
+              if not p.is_file(): continue
+              rel=str(p.relative_to(root))
+              if rel not in owned:
+                  print('CUSTOM PROGRAM',rel,'bytes',p.stat().st_size)
+          for rel in ['usr/bin/startxfce4','home/desktop/.bash_profile']:
+              print('SCRIPT',rel)
+              print((root/rel).read_text(errors='replace'))
+          for rel in ['usr/bin/xfce4-session','usr/bin/xfdesktop','usr/bin/forcereadme']:
+              p=root/rel
+              if not p.is_file():continue
+              print('PROGRAM DETAILS',rel)
+              print(subprocess.check_output(['readelf','-d',str(p)],text=True))
+              strings=subprocess.check_output(['strings',str(p)],text=True,errors='replace')
+              for s in strings.splitlines():
+                  if len(s)<200 and any(t in s.lower() for t in ['x11mouse','volkspc','microxwin','fakekey','/tmp/','/dev/x11','xinput']):
+                      print('STRING',s)
+          PY
+          sudo umount source-mount
