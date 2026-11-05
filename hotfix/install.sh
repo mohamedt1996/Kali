@@ -4,7 +4,21 @@ ROOT=/data/local/tmp/mxwin
 HERE=$(dirname "$(readlink -f "$0")")
 [ "$(id -u)" = 0 ] || { echo 'Run this from a su -mm shell.'; exit 1; }
 [ -f "$ROOT/etc/os-release" ] || { echo 'Start Kali through VolksPC first; its filesystem is not mounted here.'; exit 1; }
-grep -q 'ID=kali\|ID="kali"' "$ROOT/etc/os-release" || { echo 'This patch is intended for the Kali image.'; exit 1; }
+KALI_ID=
+while IFS='=' read -r key value; do
+    [ "$key" = ID ] || continue
+    case "$value" in kali|'"kali"'|"'kali'") KALI_ID=kali ;; esac
+done < "$ROOT/etc/os-release"
+[ "$KALI_ID" = kali ] || { echo 'This patch is intended for the Kali image.'; exit 1; }
+FOUND=
+for candidate in "$HERE" "$HERE/volkspc-input-compat" "$HERE/volkspc-input-compat-v1/volkspc-input-compat" "$HERE/volkspc-input-compat-v1"; do
+    if [ -r "$candidate/payload.tar.gz" ] && [ -r "$candidate/files.txt" ] && [ -r "$candidate/restore.sh" ]; then
+        HERE=$candidate
+        FOUND=yes
+        break
+    fi
+done
+[ "$FOUND" = yes ] || { echo 'Cannot find payload.tar.gz, files.txt and restore.sh. Keep the extracted patch files together in one folder.'; exit 1; }
 BACKUP="$ROOT/var/backups/volkspc-input-compat-$(date +%Y%m%d-%H%M%S)-$$"
 STAGE="/data/local/tmp/volkspc-input-compat-$$"
 mkdir -p "$BACKUP" "$STAGE"
