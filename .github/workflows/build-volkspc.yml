@@ -92,7 +92,7 @@ jobs:
               assert int(z.read('linuxfs.size')) == z.getinfo('linuxfs.img').file_size
           assert (out/'linuxfs.img').stat().st_size == int((out/'linuxfs.size').read_text())
           PY
-          sudo chown "$(id -u):$(id -g)" "$RUNNER_TEMP/kali-output/credentials.txt"
+          sudo chown "$(id -u):$(id -g)" "$RUNNER_TEMP/kali-output" "$RUNNER_TEMP/kali-output/credentials.txt"
           cd "$RUNNER_TEMP/kali-output"
           sha256sum volkspcimgarm64.zip linuxfs.img > SHA256SUMS
           {

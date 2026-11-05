@@ -100,6 +100,13 @@ rm "$ROOT/usr/sbin/policy-rc.d"
 if [[ -e $BUILD/original-policy-rc.d || -L $BUILD/original-policy-rc.d ]]; then
     mv "$BUILD/original-policy-rc.d" "$ROOT/usr/sbin/policy-rc.d"
 fi
+# The host resolver is only for package installation. It may point to a local
+# systemd stub unavailable on Android, so restore the vendor's runtime DNS.
+if [[ -f $SRC/etc/resolv.conf ]]; then
+    cp -L "$SRC/etc/resolv.conf" "$ROOT/etc/resolv.conf"
+else
+    printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > "$ROOT/etc/resolv.conf"
+fi
 
 # Copy the user's own vendor files into a private directory, preserving symlinks.
 # The package records show these libraries were held in the source installation.
@@ -207,6 +214,6 @@ mkfs.ext4 -F -L kali-volkspc -O '^64bit,^metadata_csum,^orphan_file' \
     -d "$ROOT" "$OUT/linuxfs.img"
 stat -c '%s' "$OUT/linuxfs.img" > "$OUT/linuxfs.size"
 e2fsck -fn "$OUT/linuxfs.img"
-(cd "$OUT"; zip -9 volkspcimgarm64.zip linuxfs.img linuxfs.size)
+(cd "$OUT"; zip -6 volkspcimgarm64.zip linuxfs.img linuxfs.size)
 unzip -t "$OUT/volkspcimgarm64.zip"
 printf 'Experimental image: %s/volkspcimgarm64.zip\nCredentials: %s/credentials.txt\n' "$OUT" "$OUT"
