@@ -1,0 +1,393 @@
+[
+  {
+    "file": "libxcb-render.so.0.0.0",
+    "bytes": 67864,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb.so.1.1.0",
+    "bytes": 134056,
+    "needed": [
+      "libXau.so.6",
+      "libXdmcp.so.6",
+      "libX11.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.38"
+    ]
+  },
+  {
+    "file": "libXrandr.so.2.2.0",
+    "bytes": 67864,
+    "needed": [
+      "libXext.so.6",
+      "libXrender.so.1",
+      "libX11.so.6",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libXcursor.so.1.0.2",
+    "bytes": 68128,
+    "needed": [
+      "libXrender.so.1",
+      "libX11.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "waylandx11",
+    "bytes": 69704,
+    "needed": [
+      "libwayland-server.so.0",
+      "libXrender.so.1",
+      "libX11.so.6",
+      "libX11-xcb.so.1",
+      "libxkbcommon.so.0",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.33",
+      "GLIBC_2.34",
+      "GLIBC_2.38"
+    ]
+  },
+  {
+    "file": "libxcb-dri3.so.0.1.0",
+    "bytes": 67688,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-shm.so.0.0.0",
+    "bytes": 67560,
+    "needed": [
+      "libxcb.so.1",
+      "libX11.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libX11.so.6.4.0",
+    "bytes": 945320,
+    "needed": [
+      "libm.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.33",
+      "GLIBC_2.34",
+      "GLIBC_2.38"
+    ]
+  },
+  {
+    "file": "libxcb-xfixes.so.0.0.0",
+    "bytes": 67648,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-present.so.0.0.0",
+    "bytes": 67640,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-glx.so.0.0.0",
+    "bytes": 133208,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-xkb.so.1.0.0",
+    "bytes": 133688,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-sync.so.1.0.0",
+    "bytes": 67728,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-randr.so.0.1.0",
+    "bytes": 67888,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libX11-xcb.so.1.0.0",
+    "bytes": 67432,
+    "needed": [
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libXext.so.6.4.0",
+    "bytes": 67520,
+    "needed": [
+      "libX11.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libxcb-util.so.1.0.0",
+    "bytes": 67824,
+    "needed": [
+      "libxcb.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libXrender.so.1.3.0",
+    "bytes": 67800,
+    "needed": [
+      "libX11.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libstartup-notification-1.so.0.0.0",
+    "bytes": 185936,
+    "needed": [
+      "libX11.so.6",
+      "libc.so.6"
+    ],
+    "glibc": [
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "libgtk-4.so.1.1800.6",
+    "bytes": 45682688,
+    "needed": [
+      "libgmodule-2.0.so.0",
+      "libglib-2.0.so.0",
+      "libgobject-2.0.so.0",
+      "libgio-2.0.so.0",
+      "libpangocairo-1.0.so.0",
+      "libpango-1.0.so.0",
+      "libharfbuzz.so.0",
+      "libcairo.so.2",
+      "libharfbuzz-subset.so.0",
+      "libfribidi.so.0",
+      "libcairo-gobject.so.2",
+      "libfontconfig.so.1",
+      "libgdk_pixbuf-2.0.so.0",
+      "libepoxy.so.0",
+      "libm.so.6",
+      "libgraphene-1.0.so.0",
+      "libXi.so.6",
+      "libX11.so.6",
+      "libpangoft2-1.0.so.0",
+      "libcloudproviders.so.0",
+      "libvulkan.so.1",
+      "libpng16.so.16",
+      "libtiff.so.6",
+      "libjpeg.so.62",
+      "libxkbcommon.so.0",
+      "libwayland-client.so.0",
+      "libwayland-egl.so.1",
+      "libXext.so.6",
+      "libXcursor.so.1",
+      "libXdamage.so.1",
+      "libXfixes.so.3",
+      "libXrandr.so.2",
+      "libXinerama.so.1",
+      "libcairo-script-interpreter.so.2",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.27",
+      "GLIBC_2.28",
+      "GLIBC_2.29",
+      "GLIBC_2.33",
+      "GLIBC_2.34",
+      "GLIBC_2.35",
+      "GLIBC_2.38"
+    ]
+  },
+  {
+    "file": "libgdk-3.so.0.2417.32",
+    "bytes": 4806696,
+    "needed": [
+      "libm.so.6",
+      "libgdk_pixbuf-2.0.so.0",
+      "libgobject-2.0.so.0",
+      "libglib-2.0.so.0",
+      "libcairo.so.2",
+      "libpango-1.0.so.0",
+      "libfribidi.so.0",
+      "libcairo-gobject.so.2",
+      "libepoxy.so.0",
+      "libfontconfig.so.1",
+      "libgio-2.0.so.0",
+      "libpangocairo-1.0.so.0",
+      "libxkbcommon.so.0",
+      "libwayland-client.so.0",
+      "libwayland-cursor.so.0",
+      "libwayland-egl.so.1",
+      "libX11.so.6",
+      "libXi.so.6",
+      "libXext.so.6",
+      "libXcursor.so.1",
+      "libXdamage.so.1",
+      "libXfixes.so.3",
+      "libXcomposite.so.1",
+      "libXrandr.so.2",
+      "libXinerama.so.1",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.26",
+      "GLIBC_2.33",
+      "GLIBC_2.34",
+      "GLIBC_2.38"
+    ]
+  },
+  {
+    "file": "libgtk-3.so.0.2417.32",
+    "bytes": 32937136,
+    "needed": [
+      "libgdk-3.so.0",
+      "libgmodule-2.0.so.0",
+      "libglib-2.0.so.0",
+      "libgobject-2.0.so.0",
+      "libgio-2.0.so.0",
+      "libpangocairo-1.0.so.0",
+      "libpango-1.0.so.0",
+      "libharfbuzz.so.0",
+      "libcairo.so.2",
+      "libpangoft2-1.0.so.0",
+      "libfontconfig.so.1",
+      "libfribidi.so.0",
+      "libcairo-gobject.so.2",
+      "libgdk_pixbuf-2.0.so.0",
+      "libatk-1.0.so.0",
+      "libepoxy.so.0",
+      "libm.so.6",
+      "libXi.so.6",
+      "libX11.so.6",
+      "libatk-bridge-2.0.so.0",
+      "libcloudproviders.so.0",
+      "libXfixes.so.3",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.29",
+      "GLIBC_2.33",
+      "GLIBC_2.38"
+    ]
+  },
+  {
+    "file": "libcairo.so.2.11804.4",
+    "bytes": 6898976,
+    "needed": [
+      "libm.so.6",
+      "libz.so.1",
+      "libpng16.so.16",
+      "libfontconfig.so.1",
+      "libfreetype.so.6",
+      "libX11.so.6",
+      "libXext.so.6",
+      "libXrender.so.1",
+      "libxcb.so.1",
+      "libxcb-render.so.0",
+      "libxcb-shm.so.0",
+      "libpixman-1.so.0",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "glibc": [
+      "GLIBC_2.17",
+      "GLIBC_2.28",
+      "GLIBC_2.29",
+      "GLIBC_2.34",
+      "GLIBC_2.35",
+      "GLIBC_2.38"
+    ]
+  }
+]
