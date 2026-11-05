@@ -1,0 +1,81 @@
+name: Package VolksPC desktop compatibility patch
+on:
+  push:
+    branches: [main]
+    paths: ['hotfix/**', '.github/workflows/input-compat.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        id: source
+        with:
+          path: ${{ runner.temp }}/volkspc-source
+          key: volkspc-source-KdFBkaBB-v1
+      - name: Require cached original image
+        run: test -f "$RUNNER_TEMP/volkspc-source/linuxfs.img"
+      - name: Extract vendor compatibility files
+        run: |
+          mkdir vendor-mount volkspc-input-compat payload
+          sudo mount -t ext4 -o loop,ro,noload "$RUNNER_TEMP/volkspc-source/linuxfs.img" vendor-mount
+          while IFS= read -r rel; do
+            test -n "$rel" || continue
+            test -f "vendor-mount/$rel"
+            mkdir -p "payload/$(dirname "$rel")"
+            cp "vendor-mount/$rel" "payload/$rel"
+          done < hotfix/files.txt
+          sudo umount vendor-mount
+          cp hotfix/* volkspc-input-compat/
+          tar -czf volkspc-input-compat/payload.tar.gz -C payload .
+          bash -n hotfix/install.sh
+          bash -n hotfix/restore.sh
+
+      - name: Download the previously verified Kali image
+        run: |
+          gh run download 42062696990 --name volkspc-kali-arm64-experimental --dir base-artifact
+          unzip -q base-artifact/volkspcimgarm64.zip linuxfs.img -d kali-base
+
+      - name: Check vendor binary dependencies against Kali ARM64
+        run: |
+          mkdir kali-mount
+          sudo mount -t ext4 -o loop kali-base/linuxfs.img kali-mount
+          sudo mkdir -p kali-mount/opt/volkspc-hotfix-check
+          sudo cp -a payload/usr kali-mount/opt/volkspc-hotfix-check/
+          sudo chroot kali-mount /usr/bin/env LD_LIBRARY_PATH=/opt/volkspc/lib /bin/bash -ec '
+            for name in xfdesktop xfdesktop-settings xfce4-session-logout volkspcpower x11info x11setaccel; do
+              file=/opt/volkspc-hotfix-check/usr/bin/$name
+              output=$(ldd -r "$file" 2>&1)
+              printf "%s\n%s\n" "$name" "$output"
+              if printf "%s\n" "$output" | grep -E "not found|undefined symbol"; then exit 1; fi
+            done
+          '
+          sudo umount kali-mount
+
+      - name: Package and publish experimental patch
+        run: |
+          zip -qr volkspc-input-compat-v1.zip volkspc-input-compat
+          unzip -t volkspc-input-compat-v1.zip
+          sha256sum volkspc-input-compat-v1.zip > volkspc-input-compat-v1.sha256
+          {
+            echo '# Experimental desktop compatibility patch'
+            echo ''
+            echo 'Restores the modified xfdesktop/settings/logout programs and small helpers from the original VolksPC image. This addresses an identified integration omission; pointer behavior still requires a tablet test.'
+            echo ''
+            cat hotfix/README.md
+          } > notes.md
+          tag="volkspc-input-compat-v1-$GITHUB_RUN_ID"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title 'VolksPC desktop compatibility patch v1 (experimental)' \
+            --notes-file notes.md volkspc-input-compat-v1.zip volkspc-input-compat-v1.sha256
+          gh release view "$tag" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
