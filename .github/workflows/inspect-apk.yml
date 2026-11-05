@@ -1,0 +1,66 @@
+name: Inspect VolksPC Android14 6.1 installer
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download the supplied APK bundle
+        run: |
+          curl --fail --location --retry 2 --output bundle.zip 'https://www.volkspc.org/wp-content/uploads/2026/08/volkspcAndroid14-6.1apk.zip'
+          unzip -l bundle.zip
+          unzip -q bundle.zip -d bundle
+          python3 -m venv venv
+          venv/bin/pip -q install androguard
+      - name: Inspect manifest, image detection and installer decisions
+        run: |
+          venv/bin/python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          from loguru import logger
+          logger.remove()
+          from androguard.core.apk import APK
+          from androguard.core.dex import DEX
+          for p in Path('bundle').rglob('*'):
+              if p.suffix.lower()=='.txt':
+                  print('DOCUMENT',p.name)
+                  print(p.read_text(errors='replace')[:6500])
+          for p in Path('bundle').rglob('*.apk'):
+              if 'installer' not in p.name.lower(): continue
+              a=APK(str(p))
+              print('INSTALLER',p.name,'PACKAGE',a.get_package(),'VERSION',a.get_androidversion_name(),'TARGET',a.get_target_sdk_version())
+              print('PERMISSIONS',a.get_permissions())
+              print('MANIFEST',a.get_android_manifest_xml().attrib)
+              from lxml import etree
+              print(etree.tostring(a.get_android_manifest_xml(),pretty_print=True).decode())
+              with zipfile.ZipFile(p) as z:
+                  for n in z.namelist():
+                      if n.startswith('assets/'):
+                          print('ASSET',n)
+                          if n.endswith('.zip'):
+                              import io
+                              with zipfile.ZipFile(io.BytesIO(z.read(n))) as assets:
+                                  print('ASSET MEMBERS',assets.namelist())
+                                  for name in assets.namelist():
+                                      if any(k in name.lower() for k in ['find','chk','check','install']):
+                                          data=assets.read(name)
+                                          if len(data)<15000 and b'\x00' not in data:
+                                              print('ASSET TEXT',name,'\n',data.decode(errors='replace'))
+                  for n in z.namelist():
+                      if not n.endswith('.dex'):continue
+                      d=DEX(z.read(n))
+                      for c in d.get_classes():
+                          if 'volkspc' not in c.get_name().lower():continue
+                          for m in c.get_methods():
+                              ins=list(m.get_instructions())
+                              text='\n'.join(i.get_name()+' '+i.get_output() for i in ins)
+                              terms=['findvolkspcimg','download','permission','MANAGE_EXTERNAL','canRead','getExternalStorage','volkspcimg']
+                              if any(t.lower() in (m.get_name()+' '+text).lower() for t in terms):
+                                  print('METHOD',c.get_name(),m.get_name(),'\n',text[:25000])
+          PY
