@@ -24,49 +24,35 @@ jobs:
           megadl --path "$RUNNER_TEMP/source.zip" 'https://mega.nz/file/KdFBkaBB#1piuceTTQsi5NlhnUAWqsa6UbPoL-KMunXK0LVa4AdM'
           mkdir -p "$RUNNER_TEMP/volkspc-source"
           unzip -q "$RUNNER_TEMP/source.zip" -d "$RUNNER_TEMP/volkspc-source"
-      - name: Inspect vendor modifications and custom programs
+      - name: Inspect vendor login, session and input startup
         run: |
           mkdir source-mount
           sudo mount -t ext4 -o loop,ro,noload "$RUNNER_TEMP/volkspc-source/linuxfs.img" source-mount
+          cd source-mount
+          show() { for f in "$@"; do if sudo test -f "$f"; then echo "===== FILE $f"; sudo cat "$f"; echo; fi; done; }
+          echo '===== HOME LISTING'; sudo find home/desktop -maxdepth 2 -printf '%M %s %p\n' | sort -k3
+          echo '===== AUTOSTART'; sudo find etc/xdg/autostart home/desktop/.config/autostart -maxdepth 1 -type f 2>/dev/null
+          show home/desktop/.bash_profile home/desktop/.profile home/desktop/.bashrc home/desktop/.xinitrc \
+               home/desktop/.xsession home/desktop/.xsessionrc home/desktop/.Xresources home/desktop/.xprofile \
+               home/desktop/myxmodmap etc/rc.chroot etc/environment etc/X11/Xsession etc/X11/xinit/xinitrc \
+               etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml \
+               home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml \
+               home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/pointers.xml \
+               home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml \
+               home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml \
+               usr/bin/startx11env usr/bin/installx11env usr/bin/androidhome usr/bin/androidview usr/bin/open
+          for f in $(sudo find etc/profile.d etc/ld.so.conf.d etc/X11/Xsession.d etc/environment.d -type f 2>/dev/null); do show "$f"; done
+          for f in $(sudo find etc/xdg/autostart home/desktop/.config/autostart -type f 2>/dev/null); do show "$f"; done
+          for p in usr/bin/waylandx11 usr/bin/x11setaccel usr/bin/x11info usr/lib/aarch64-linux-gnu/libX11.so.6.4.0 usr/lib/aarch64-linux-gnu/libgdk-3.so.0.2417.32 usr/lib/aarch64-linux-gnu/libxcb.so.1.1.0; do
+            echo "===== STRINGS $p"
+            sudo strings -n 5 "$p" | grep -iE 'x11dev|/dev/|/tmp/|getenv|XINPUT|XI2|touch|mouse|pointer|MICROX|GDK_|DISPLAY|volkspc|evdev|accel|_ENV|^[A-Z][A-Z0-9_]{4,}$' | sort -u | head -150
+          done
+          echo '===== PACKAGE VERSIONS'
           sudo python3 - <<'PY'
-          from pathlib import Path
-          import hashlib, subprocess
-          root=Path('source-mount')
-          status=(root/'var/lib/dpkg/status').read_text()
-          names=[]
+          status=open('var/lib/dpkg/status').read()
+          want={'xfwm4','xfce4-session','libgtk-3-0t64','libxi6','libx11-6','xfce4-panel','xfdesktop4','libglib2.0-0t64','xfce4-settings','libxfixes3','libxkbcommon0','libwayland-server0'}
           for p in status.split('\n\n'):
-              if 'Status: hold ' in p:
-                  names.append(p.splitlines()[0].split(': ',1)[1])
-          info=root/'var/lib/dpkg/info'
-          for name in names:
-              print('HELD PACKAGE',name)
-              for f in info.glob(name+'*.md5sums'):
-                  for line in f.read_text().splitlines():
-                      checksum,rel=line.split(None,1)
-                      p=root/rel
-                      if p.is_file():
-                          actual=hashlib.md5(p.read_bytes()).hexdigest()
-                          if actual!=checksum:
-                              print('MODIFIED',rel,'bytes',p.stat().st_size)
-          owned=set()
-          for f in info.glob('*.list'):
-              owned.update(line.lstrip('/') for line in f.read_text().splitlines())
-          for p in sorted((root/'usr/bin').iterdir()):
-              if not p.is_file(): continue
-              rel=str(p.relative_to(root))
-              if rel not in owned:
-                  print('CUSTOM PROGRAM',rel,'bytes',p.stat().st_size)
-          for rel in ['usr/bin/forcereadme','usr/bin/setcursor','etc/xdg/xfce4/xinitrc','etc/profile','etc/profile.d/volkspc.sh']:
-              print('SCRIPT',rel)
-              if (root/rel).is_file(): print((root/rel).read_text(errors='replace'))
-          for rel in ['usr/bin/xfce4-session','usr/bin/xfdesktop','usr/bin/forcereadme']:
-              p=root/rel
-              if not p.is_file() or p.read_bytes()[:4] != b'\\x7fELF':continue
-              print('PROGRAM DETAILS',rel)
-              print(subprocess.check_output(['readelf','-d',str(p)],text=True))
-              strings=subprocess.check_output(['strings',str(p)],text=True,errors='replace')
-              for s in strings.splitlines():
-                  if len(s)<200 and any(t in s.lower() for t in ['x11mouse','volkspc','microxwin','fakekey','/tmp/','/dev/x11','xinput']):
-                      print('STRING',s)
+              f=dict(l.split(': ',1) for l in p.splitlines() if ': ' in l and not l.startswith(' '))
+              if f.get('Package') in want: print(f['Package'], f.get('Version'), f.get('Status'))
           PY
-          sudo umount source-mount
+          cd ..; sudo umount source-mount
