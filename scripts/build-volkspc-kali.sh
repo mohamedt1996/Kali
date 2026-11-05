@@ -159,6 +159,9 @@ chmod 700 "$XDG_RUNTIME_DIR"
 pulseaudio --start
 /bin/waylandx11 > /tmp/waylandx11.log 2>&1 &
 wayland_pid=$!
+# Snapshot the running session for input diagnosis (readable from Android as
+# /data/local/tmp/mxwin/tmp/volkspc-session.txt).
+(sleep 45; { date; x11info; ps -eo pid,args; } > /tmp/volkspc-session.txt 2>&1) &
 /usr/bin/startxfce4
 kill "$wayland_pid" 2>/dev/null || true
 pulseaudio -k
@@ -181,6 +184,20 @@ fi
 mount -o remount,ro /
 STARTUP
 chmod 755 "$ROOT/etc/rc.chroot"
+# Kali autostarts many session services the VolksPC session never runs, e.g.
+# xfce4-screensaver (grabs the pointer when it activates), xfce4-power-manager,
+# xcape and xiccd. VolksPC's X server lives in a kernel module, and a stray
+# pointer grab there leaves touch input dead. Start only what the vendor
+# session starts; per-user Hidden=true overrides survive package upgrades.
+mkdir -p "$ROOT/home/desktop/.config/autostart"
+for entry in "$ROOT"/etc/xdg/autostart/*.desktop; do
+    name=${entry##*/}
+    [[ -e $SRC/etc/xdg/autostart/$name ]] && continue
+    [[ -e $ROOT/home/desktop/.config/autostart/$name ]] && continue
+    printf '[Desktop Entry]\nType=Application\nName=%s\nHidden=true\nX-VolksPC-Disabled=true\n' \
+        "${name%.desktop}" > "$ROOT/home/desktop/.config/autostart/$name"
+    printf 'Disabled Kali-only autostart: %s\n' "$name"
+done
 chroot "$ROOT" chown -R desktop:desktop /home/desktop
 PASSWORD=$(python3 -c 'import secrets; print(secrets.token_urlsafe(15))')
 printf 'desktop:%s\n' "$PASSWORD" | chroot "$ROOT" chpasswd

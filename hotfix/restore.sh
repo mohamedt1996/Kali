@@ -13,5 +13,12 @@ while IFS= read -r rel; do
         rm -f "$ROOT/$rel"
     fi
 done < "$HERE/files.txt"
+if [ -f "$HERE/autostart-created.txt" ]; then
+    while IFS= read -r name; do
+        [ -n "$name" ] || continue
+        f="$ROOT/home/desktop/.config/autostart/$name"
+        if [ -f "$f" ] && grep -q '^X-VolksPC-Disabled=true$' "$f"; then rm -f "$f"; fi
+    done < "$HERE/autostart-created.txt"
+fi
 sync
 echo 'Original files restored. Reboot Android, then start VolksPC again.'
