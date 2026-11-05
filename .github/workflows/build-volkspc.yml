@@ -1,0 +1,128 @@
+name: Build and check VolksPC Kali ARM64
+
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/**', '.github/workflows/build-volkspc.yml']
+  pull_request:
+    paths: ['scripts/**', '.github/workflows/build-volkspc.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: volkspc-${{ github.ref }}-v2
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools and check available storage
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y megatools python3 binutils e2fsprogs util-linux zip unzip shellcheck
+          shellcheck -S warning scripts/build-volkspc-kali.sh
+          bash -n scripts/build-volkspc-kali.sh
+          df -h "$RUNNER_TEMP"
+
+      - name: Restore original filesystem cache
+        id: source-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/volkspc-source
+          key: volkspc-source-KdFBkaBB-v1
+
+      - name: Download original VolksPC filesystem
+        if: steps.source-cache.outputs.cache-hit != 'true'
+        env:
+          VOLKSPC_URL: 'https://mega.nz/file/KdFBkaBB#1piuceTTQsi5NlhnUAWqsa6UbPoL-KMunXK0LVa4AdM'
+        run: |
+          mkdir -p "$RUNNER_TEMP/volkspc-source"
+          megadl --path "$RUNNER_TEMP/vendor.zip" "$VOLKSPC_URL"
+          sha256sum "$RUNNER_TEMP/vendor.zip" | tee "$RUNNER_TEMP/source-sha256.txt"
+          unzip -q "$RUNNER_TEMP/vendor.zip" -d "$RUNNER_TEMP/volkspc-source"
+          test -f "$RUNNER_TEMP/volkspc-source/linuxfs.img"
+          test -f "$RUNNER_TEMP/volkspc-source/linuxfs.size"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          source = Path(os.environ['RUNNER_TEMP']) / 'volkspc-source'
+          assert int((source/'linuxfs.size').read_text().strip()) == (source/'linuxfs.img').stat().st_size
+          PY
+          rm "$RUNNER_TEMP/vendor.zip"
+
+      - name: Cache verified source download
+        if: steps.source-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/volkspc-source
+          key: volkspc-source-KdFBkaBB-v1
+
+      - name: Export official Kali ARM64 base filesystem
+        run: |
+          docker pull --platform linux/arm64 kalilinux/kali-rolling:latest
+          docker image inspect kalilinux/kali-rolling:latest --format '{{json .RepoDigests}}' | tee "$RUNNER_TEMP/kali-base-digest.txt"
+          image_arch=$(docker image inspect kalilinux/kali-rolling:latest --format '{{.Architecture}}')
+          test "$image_arch" = arm64
+          container=$(docker create --platform linux/arm64 kalilinux/kali-rolling:latest /bin/true)
+          docker export "$container" > "$RUNNER_TEMP/kali-arm64.tar"
+          docker rm "$container"
+
+      - name: Build image and run ARM64 dependency checks
+        run: |
+          set -o pipefail
+          sudo bash scripts/build-volkspc-kali.sh \
+            "$RUNNER_TEMP/volkspc-source/linuxfs.img" \
+            "$RUNNER_TEMP/kali-arm64.tar" \
+            "$RUNNER_TEMP/kali-output" 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Verify packaged image and record checksums
+        run: |
+          python3 - <<'PY'
+          import os, zipfile
+          from pathlib import Path
+          out = Path(os.environ['RUNNER_TEMP']) / 'kali-output'
+          with zipfile.ZipFile(out/'volkspcimgarm64.zip') as z:
+              assert set(z.namelist()) == {'linuxfs.img', 'linuxfs.size'}
+              assert int(z.read('linuxfs.size')) == z.getinfo('linuxfs.img').file_size
+          assert (out/'linuxfs.img').stat().st_size == int((out/'linuxfs.size').read_text())
+          PY
+          sudo chown "$(id -u):$(id -g)" "$RUNNER_TEMP/kali-output" "$RUNNER_TEMP/kali-output/credentials.txt"
+          cd "$RUNNER_TEMP/kali-output"
+          sha256sum volkspcimgarm64.zip linuxfs.img > SHA256SUMS
+          {
+            echo '## Image build and userspace checks passed'
+            echo ''
+            echo 'Checked: ARM64 Kali userspace, desktop UID, dynamic dependencies and relocations, ext4 filesystem, ZIP integrity and image byte count.'
+            echo ''
+            echo '**Tablet validation is pending:** kernel-module loading, /dev/x11dev, display, touch/keyboard and audio cannot be tested by this GitHub runner.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload experimental image for personal testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: volkspc-kali-arm64-experimental
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/kali-output/volkspcimgarm64.zip
+            ${{ runner.temp }}/kali-output/credentials.txt
+            ${{ runner.temp }}/kali-output/SHA256SUMS
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/build.log
+            ${{ runner.temp }}/source-sha256.txt
+            ${{ runner.temp }}/kali-base-digest.txt
