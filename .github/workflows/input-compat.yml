@@ -69,18 +69,18 @@ jobs:
 
       - name: Package and publish experimental patch
         run: |
-          zip -qr volkspc-input-compat-v2.zip volkspc-input-compat
-          unzip -t volkspc-input-compat-v2.zip
-          sha256sum volkspc-input-compat-v2.zip > volkspc-input-compat-v2.sha256
+          zip -qr volkspc-input-compat-v3.zip volkspc-input-compat
+          unzip -t volkspc-input-compat-v3.zip
+          sha256sum volkspc-input-compat-v3.zip > volkspc-input-compat-v3.sha256
           {
             echo '# Experimental desktop compatibility patch'
             echo ''
-            echo 'Restores the vendor xfdesktop/settings/logout programs and helpers, and disables Kali-only session autostarts (screensaver, power manager, xcape, xiccd, ...) that the working VolksPC session never runs. Includes diagnose.sh for collecting input logs.'
+            echo 'Restores the vendor xfdesktop/settings/logout programs and helpers, and disables only xfce4-screensaver, whose pointer grab can leave touch input dead; all other Kali session services still run. Includes diagnose.sh for collecting input logs.'
             echo ''
             cat hotfix/README.md
           } > notes.md
-          tag="volkspc-input-compat-v2-$GITHUB_RUN_ID"
+          tag="volkspc-input-compat-v3-$GITHUB_RUN_ID"
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'VolksPC desktop compatibility patch v2 (experimental)' \
-            --notes-file notes.md volkspc-input-compat-v2.zip volkspc-input-compat-v2.sha256
+            --title 'VolksPC desktop compatibility patch v3 (experimental)' \
+            --notes-file notes.md volkspc-input-compat-v3.zip volkspc-input-compat-v3.sha256
           gh release view "$tag" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"

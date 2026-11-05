@@ -184,20 +184,13 @@ fi
 mount -o remount,ro /
 STARTUP
 chmod 755 "$ROOT/etc/rc.chroot"
-# Kali autostarts many session services the VolksPC session never runs, e.g.
-# xfce4-screensaver (grabs the pointer when it activates), xfce4-power-manager,
-# xcape and xiccd. VolksPC's X server lives in a kernel module, and a stray
-# pointer grab there leaves touch input dead. Start only what the vendor
-# session starts; per-user Hidden=true overrides survive package upgrades.
+# xfce4-screensaver grabs all pointer input when it activates. VolksPC's X
+# server lives in a kernel module, and if the lock screen does not appear the
+# grab leaves touch input dead. Android already locks the tablet, so disable
+# only this autostart; every other Kali session service still runs.
 mkdir -p "$ROOT/home/desktop/.config/autostart"
-for entry in "$ROOT"/etc/xdg/autostart/*.desktop; do
-    name=${entry##*/}
-    [[ -e $SRC/etc/xdg/autostart/$name ]] && continue
-    [[ -e $ROOT/home/desktop/.config/autostart/$name ]] && continue
-    printf '[Desktop Entry]\nType=Application\nName=%s\nHidden=true\nX-VolksPC-Disabled=true\n' \
-        "${name%.desktop}" > "$ROOT/home/desktop/.config/autostart/$name"
-    printf 'Disabled Kali-only autostart: %s\n' "$name"
-done
+printf '[Desktop Entry]\nType=Application\nName=xfce4-screensaver\nHidden=true\nX-VolksPC-Disabled=true\n' \
+    > "$ROOT/home/desktop/.config/autostart/xfce4-screensaver.desktop"
 chroot "$ROOT" chown -R desktop:desktop /home/desktop
 PASSWORD=$(python3 -c 'import secrets; print(secrets.token_urlsafe(15))')
 printf 'desktop:%s\n' "$PASSWORD" | chroot "$ROOT" chpasswd

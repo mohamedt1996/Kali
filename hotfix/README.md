@@ -4,14 +4,15 @@ The first Kali image retained the vendor graphics libraries, but used Kali's
 standard `xfdesktop`, desktop settings, and logout tool. The original image
 contains modified copies of these programs. This patch restores those copies
 and their small vendor helpers, together with the matching DMZ-Black cursor theme.
-Version 2 also disables the session services Kali autostarts but the working
-VolksPC image never runs (xfce4-screensaver, xfce4-power-manager, xcape, xiccd,
-nm-applet, blueman and others). VolksPC's X server is a kernel module; a pointer
-grab by one of these, such as the screensaver's lock grab, leaves touch input dead.
-This is the leading suspect for the touch failure, not yet confirmed on a tablet.
+Version 3 also disables xfce4-screensaver, and only that; every other Kali
+session service still starts. VolksPC's X server is a kernel module, and the
+screensaver's lock grab can leave touch input dead if its lock screen does not
+appear. Android already locks the tablet. Installing v3 re-enables anything v2
+disabled. This is the leading suspect for the touch failure, not yet confirmed
+on a tablet.
 Full-screen operation is required by VolksPC.
 
-1. Download `volkspc-input-compat-v2.zip` and extract it into Android's Download
+1. Download `volkspc-input-compat-v3.zip` and extract it into Android's Download
    folder. The resulting folder should be `volkspc-input-compat`.
 2. Start the existing Kali desktop so its filesystem is mounted.
 3. Open Termux and run these lines separately:
