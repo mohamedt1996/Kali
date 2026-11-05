@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: volkspc-${{ github.ref }}
+  group: volkspc-${{ github.ref }}-v2
   cancel-in-progress: true
 
 jobs:
@@ -30,7 +30,15 @@ jobs:
           bash -n scripts/build-volkspc-kali.sh
           df -h "$RUNNER_TEMP"
 
+      - name: Restore original filesystem cache
+        id: source-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/volkspc-source
+          key: volkspc-source-KdFBkaBB-v1
+
       - name: Download original VolksPC filesystem
+        if: steps.source-cache.outputs.cache-hit != 'true'
         env:
           VOLKSPC_URL: 'https://mega.nz/file/KdFBkaBB#1piuceTTQsi5NlhnUAWqsa6UbPoL-KMunXK0LVa4AdM'
         run: |
@@ -47,6 +55,13 @@ jobs:
           assert int((source/'linuxfs.size').read_text().strip()) == (source/'linuxfs.img').stat().st_size
           PY
           rm "$RUNNER_TEMP/vendor.zip"
+
+      - name: Cache verified source download
+        if: steps.source-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/volkspc-source
+          key: volkspc-source-KdFBkaBB-v1
 
       - name: Export official Kali ARM64 base filesystem
         run: |
@@ -77,6 +92,7 @@ jobs:
               assert int(z.read('linuxfs.size')) == z.getinfo('linuxfs.img').file_size
           assert (out/'linuxfs.img').stat().st_size == int((out/'linuxfs.size').read_text())
           PY
+          sudo chown "$(id -u):$(id -g)" "$RUNNER_TEMP/kali-output/credentials.txt"
           cd "$RUNNER_TEMP/kali-output"
           sha256sum volkspcimgarm64.zip linuxfs.img > SHA256SUMS
           {
