@@ -35,8 +35,12 @@ jobs:
             mkdir -p "payload/$(dirname "$rel")"
             cp "vendor-mount/$rel" "payload/$rel"
           done < hotfix/files.txt
+          test -d vendor-mount/usr/share/icons/DMZ-Black
+          mkdir -p payload/usr/share/icons
+          cp -a vendor-mount/usr/share/icons/DMZ-Black payload/usr/share/icons/
           sudo umount vendor-mount
           cp hotfix/* volkspc-input-compat/
+          find payload/usr/share/icons/DMZ-Black \( -type f -o -type l \) -printf '%P\n' | sort | sed 's|^|usr/share/icons/DMZ-Black/|' >> volkspc-input-compat/files.txt
           tar -czf volkspc-input-compat/payload.tar.gz -C payload .
           bash -n hotfix/install.sh
           bash -n hotfix/restore.sh

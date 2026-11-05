@@ -83,7 +83,7 @@ chmod 755 "$ROOT/usr/sbin/policy-rc.d"
 chroot "$ROOT" /usr/bin/env DEBIAN_FRONTEND=noninteractive /bin/bash -ec '
     apt-get update
     apt-get install -y kali-linux-core kali-desktop-xfce dbus dbus-x11 pulseaudio \
-        util-linux sudo locales tzdata x11-xserver-utils fonts-dejavu-core nmap tcpdump
+        util-linux sudo locales tzdata x11-xserver-utils fonts-dejavu-core dmz-cursor-theme nmap tcpdump
     apt-get clean
     if ! id desktop >/dev/null 2>&1; then
         if getent passwd 1000 >/dev/null; then
@@ -131,15 +131,18 @@ for prefix in prefixes:
         raise SystemExit('Missing vendor library: '+prefix)
     for p in files:
         shutil.copy2(p, dst/'opt/volkspc/lib'/p.name, follow_symlinks=False)
-for name in ['waylandx11', 'changetz', 'changelocale']:
+for name in ['waylandx11', 'changetz', 'changelocale', 'xfdesktop', 'xfdesktop-settings',
+             'xfce4-session-logout', 'volkspcpower', 'logout.glade', 'androidhome',
+             'androidview', 'x11info', 'x11setaccel', 'setcursor']:
     p = next((p for p in [src/'usr/bin'/name, src/'bin'/name] if p.is_file()), None)
     if p is None:
         raise SystemExit('Missing vendor helper: '+name)
     shutil.copy2(p, dst/'usr/bin'/name)
-    (dst/'usr/bin'/name).chmod(0o755)
+    (dst/'usr/bin'/name).chmod(0o644 if name.endswith('.glade') else 0o755)
 if (src/'usr/fonts').is_dir():
     shutil.copytree(src/'usr/fonts', dst/'usr/fonts', symlinks=True, dirs_exist_ok=True)
 PY
+chroot "$ROOT" apt-mark hold xfdesktop4 xfce4-session
 
 # Preserve the source login configuration, but use a minimal desktop startup.
 cp -a "$SRC/home/desktop/." "$ROOT/home/desktop/"

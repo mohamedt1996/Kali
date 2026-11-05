@@ -27,8 +27,9 @@ done < "$HERE/files.txt"
 while IFS= read -r rel; do
     [ -n "$rel" ] || continue
     target="$ROOT/$rel"
+    mkdir -p "$(dirname "$target")"
     cp "$STAGE/$rel" "$target.volkspc-new-$$"
-    case "$rel" in *.glade) chmod 644 "$target.volkspc-new-$$" ;; *) chmod 755 "$target.volkspc-new-$$" ;; esac
+    case "$rel" in usr/bin/*.glade) chmod 644 "$target.volkspc-new-$$" ;; usr/bin/*) chmod 755 "$target.volkspc-new-$$" ;; *) chmod 644 "$target.volkspc-new-$$" ;; esac
     chown 0:0 "$target.volkspc-new-$$"
     mv -f "$target.volkspc-new-$$" "$target"
 done < "$HERE/files.txt"

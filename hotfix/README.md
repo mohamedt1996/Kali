@@ -3,7 +3,8 @@
 The first Kali image retained the vendor graphics libraries, but used Kali's
 standard `xfdesktop`, desktop settings, and logout tool. The original image
 contains modified copies of these programs. This patch restores those copies
-and their small vendor helpers. It is a compatibility correction, not a confirmed
+and their small vendor helpers, together with the matching DMZ-Black cursor theme.
+It is a compatibility correction, not a confirmed
 fix for touchscreen or trackpad input. Full-screen operation is required by VolksPC.
 
 1. Download `volkspc-input-compat-v1.zip` and extract it into Android's Download
