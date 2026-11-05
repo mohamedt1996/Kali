@@ -34,7 +34,7 @@ mount -t ext4 -o loop,ro,noload "$SOURCE" "$SRC"
 # Python 3.12+ data filtering rejects escaping archive entries and unsafe links.
 # Both a plain rootfs and a NetHunter-style kali-arm64/ wrapper are accepted.
 python3 - "$ROOTFS" "$ROOT" <<'PY'
-import sys, tarfile
+import copy, posixpath, sys, tarfile
 if not hasattr(tarfile, 'data_filter'):
     raise SystemExit('Python with tarfile.data_filter support is required (Python 3.12+ recommended).')
 with tarfile.open(sys.argv[1], 'r:*') as archive:
@@ -46,6 +46,13 @@ with tarfile.open(sys.argv[1], 'r:*') as archive:
             parts = parts[1:]
         if parts and parts[0] == 'dev' and len(parts) > 1:
             return None
+        # A Linux rootfs legitimately has absolute symlinks (e.g. /etc/mtab).
+        # Rebase those inside the extraction root before applying data_filter.
+        if member.issym() and member.linkname.startswith('/'):
+            member = copy.copy(member)
+            wrapper = 'kali-arm64/' if member.name.removeprefix('./').startswith('kali-arm64/') else ''
+            target = wrapper + member.linkname.lstrip('/')
+            member.linkname = posixpath.relpath(target, posixpath.dirname(member.name))
         return tarfile.data_filter(member, destination)
     archive.extractall(sys.argv[2], filter=rootfs_filter)
 PY
@@ -62,11 +69,14 @@ chroot "$ROOT" /bin/true || die 'ARM64 execution unavailable. Configure qemu-use
 mkdir -p "$ROOT"/{dev/pts,proc,tmp,sys}
 chmod 1777 "$ROOT/tmp"
 mount --bind /dev "$ROOT/dev"
+mount --make-private "$ROOT/dev"
 mount --bind /dev/pts "$ROOT/dev/pts"
 mount -t proc proc "$ROOT/proc"
 rm -f "$ROOT/etc/resolv.conf"
 cp -L /etc/resolv.conf "$ROOT/etc/resolv.conf"
-[[ ! -e $ROOT/usr/sbin/policy-rc.d ]] || die 'Use a rootfs without an existing /usr/sbin/policy-rc.d.'
+if [[ -e $ROOT/usr/sbin/policy-rc.d || -L $ROOT/usr/sbin/policy-rc.d ]]; then
+    mv "$ROOT/usr/sbin/policy-rc.d" "$BUILD/original-policy-rc.d"
+fi
 printf '#!/bin/sh\nexit 101\n' > "$ROOT/usr/sbin/policy-rc.d"
 chmod 755 "$ROOT/usr/sbin/policy-rc.d"
 # Keep the rootfs's official Kali repositories and keyring. Never mix in Debian repositories.
@@ -87,6 +97,9 @@ chroot "$ROOT" /usr/bin/env DEBIAN_FRONTEND=noninteractive /bin/bash -ec '
     passwd -l root
 '
 rm "$ROOT/usr/sbin/policy-rc.d"
+if [[ -e $BUILD/original-policy-rc.d || -L $BUILD/original-policy-rc.d ]]; then
+    mv "$BUILD/original-policy-rc.d" "$ROOT/usr/sbin/policy-rc.d"
+fi
 
 # Copy the user's own vendor files into a private directory, preserving symlinks.
 # The package records show these libraries were held in the source installation.
