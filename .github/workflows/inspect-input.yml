@@ -31,21 +31,21 @@ jobs:
           cd source-mount
           show() { for f in "$@"; do if sudo test -f "$f"; then echo "===== FILE $f"; sudo cat "$f"; echo; fi; done; }
           echo '===== HOME LISTING'; sudo find home/desktop -maxdepth 2 -printf '%M %s %p\n' | sort -k3
-          echo '===== AUTOSTART'; sudo find etc/xdg/autostart home/desktop/.config/autostart -maxdepth 1 -type f 2>/dev/null
+          echo '===== AUTOSTART'; sudo find etc/xdg/autostart home/desktop/.config/autostart -maxdepth 1 -type f 2>/dev/null || true
           show home/desktop/.bash_profile home/desktop/.profile home/desktop/.bashrc home/desktop/.xinitrc \
                home/desktop/.xsession home/desktop/.xsessionrc home/desktop/.Xresources home/desktop/.xprofile \
-               home/desktop/myxmodmap etc/rc.chroot etc/environment etc/X11/Xsession etc/X11/xinit/xinitrc \
+               home/desktop/myxmodmap home/desktop/.config/waylandx11.ini home/desktop/.vnc/xstartup home/desktop/Desktop/ReleaseNotes.txt etc/rc.chroot etc/environment etc/X11/Xsession etc/X11/xinit/xinitrc \
                etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml \
                home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml \
                home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/pointers.xml \
                home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml \
                home/desktop/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml \
                usr/bin/startx11env usr/bin/installx11env usr/bin/androidhome usr/bin/androidview usr/bin/open
-          for f in $(sudo find etc/profile.d etc/ld.so.conf.d etc/X11/Xsession.d etc/environment.d -type f 2>/dev/null); do show "$f"; done
-          for f in $(sudo find etc/xdg/autostart home/desktop/.config/autostart -type f 2>/dev/null); do show "$f"; done
+          for f in $(sudo find etc/profile.d etc/ld.so.conf.d etc/X11/Xsession.d etc/environment.d -type f 2>/dev/null || true); do show "$f"; done
+          for f in $(sudo find etc/xdg/autostart home/desktop/.config/autostart -type f 2>/dev/null || true); do show "$f"; done
           for p in usr/bin/waylandx11 usr/bin/x11setaccel usr/bin/x11info usr/lib/aarch64-linux-gnu/libX11.so.6.4.0 usr/lib/aarch64-linux-gnu/libgdk-3.so.0.2417.32 usr/lib/aarch64-linux-gnu/libxcb.so.1.1.0; do
             echo "===== STRINGS $p"
-            sudo strings -n 5 "$p" | grep -iE 'x11dev|/dev/|/tmp/|getenv|XINPUT|XI2|touch|mouse|pointer|MICROX|GDK_|DISPLAY|volkspc|evdev|accel|_ENV|^[A-Z][A-Z0-9_]{4,}$' | sort -u | head -150
+            sudo strings -n 5 "$p" | grep -iE 'x11dev|/dev/|/tmp/|getenv|XINPUT|XI2|touch|mouse|pointer|MICROX|GDK_|DISPLAY|volkspc|evdev|accel|_ENV|^[A-Z][A-Z0-9_]{4,}$' | sort -u | head -150 || true
           done
           echo '===== PACKAGE VERSIONS'
           sudo python3 - <<'PY'
