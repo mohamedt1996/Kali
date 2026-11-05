@@ -107,6 +107,11 @@ if [[ -f $SRC/etc/resolv.conf ]]; then
 else
     printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > "$ROOT/etc/resolv.conf"
 fi
+if [[ -d $SRC/etc/pulse ]]; then
+    # VolksPC routes desktop audio to the Android helper through a FIFO.
+    # A stock Kali PulseAudio configuration would not retain that routing.
+    cp -a "$SRC/etc/pulse/." "$ROOT/etc/pulse/"
+fi
 
 # Copy the user's own vendor files into a private directory, preserving symlinks.
 # The package records show these libraries were held in the source installation.
