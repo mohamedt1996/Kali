@@ -1,0 +1,10 @@
+usr/bin/xfdesktop
+usr/bin/xfdesktop-settings
+usr/bin/xfce4-session-logout
+usr/bin/volkspcpower
+usr/bin/logout.glade
+usr/bin/androidhome
+usr/bin/androidview
+usr/bin/x11info
+usr/bin/x11setaccel
+usr/bin/setcursor
