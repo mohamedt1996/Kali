@@ -1,0 +1,144 @@
+name: Release VolksPC Kali image
+
+on:
+  workflow_run:
+    workflows: ['Build and check VolksPC Kali ARM64']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Successful image build run ID to publish'
+        required: true
+        default: '42062696990'
+        type: string
+  # Publish the existing verified image when this workflow is first installed.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: volkspc-kali-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id || '42062696990' }}
+    steps:
+      - name: Validate successful build provenance
+        run: |
+          [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > build-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('build-run.json').read_text())
+          assert run['status'] == 'completed' and run['conclusion'] == 'success', 'Build must pass first'
+          assert run['head_repository']['full_name'] == os.environ['GH_REPO'], 'Foreign repository build rejected'
+          assert run['path'].split('@', 1)[0] == '.github/workflows/build-volkspc.yml', 'Unexpected build workflow'
+          sha = run['head_sha']
+          assert len(sha) == 40 and all(c in '0123456789abcdef' for c in sha)
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f'BUILD_SHA={sha}\n')
+              f.write(f'RELEASE_TAG=volkspc-kali-build-{run["id"]}\n')
+          PY
+
+      - name: Check whether this build is already released
+        id: existing
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download image, credentials and checksums
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          gh run download "$BUILD_RUN_ID" \
+            --name volkspc-kali-arm64-experimental --dir release-assets
+
+      - name: Verify release assets
+        if: steps.existing.outputs.exists != 'true'
+        working-directory: release-assets
+        run: |
+          test -s volkspcimgarm64.zip
+          test -s credentials.txt
+          test -s SHA256SUMS
+          # The uncompressed image is inside the ZIP, not a separate asset.
+          sha256sum --check --ignore-missing SHA256SUMS
+          unzip -t volkspcimgarm64.zip
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('volkspcimgarm64.zip') as z:
+              assert set(z.namelist()) == {'linuxfs.img', 'linuxfs.size'}
+              assert int(z.read('linuxfs.size')) == z.getinfo('linuxfs.img').file_size
+          credentials = Path('credentials.txt').read_text()
+          assert 'User: desktop' in credentials
+          password = next(line.removeprefix('Password: ') for line in credentials.splitlines() if line.startswith('Password: '))
+          assert len(password) >= 16
+          PY
+
+      - name: Publish experimental release with login credentials
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          repo, run = os.environ['GH_REPO'], os.environ['BUILD_RUN_ID']
+          credentials = Path('release-assets/credentials.txt').read_text().strip()
+          notes = f'''Experimental Kali ARM64 XFCE image for VolksPC.
+
+          Download **volkspcimgarm64.zip**, verify it using **SHA256SUMS**, and place
+          the ZIP in Android's `/sdcard/Download/` for the matching VolksPC installer.
+          The filesystem expands to **12 GiB**.
+
+          ### Login credentials for this build
+
+          ```text
+          {credentials}
+          ```
+
+          These credentials are public. After installation, run `passwd` as
+          `desktop` to set your own password. Use `sudo` for administration.
+
+          ### Verification
+
+          ARM64 package smoke checks, graphics-library dependencies/relocations,
+          ext4 consistency, ZIP integrity and exact image size passed in the
+          [source build](https://github.com/{repo}/actions/runs/{run}).
+
+          **Tablet hardware validation is still pending.** Display, touch and audio
+          require testing on the device with a VolksPC APK matching its actual kernel.
+          The image does not replace Android's kernel or bypass VolksPC's evaluation limits.
+          '''
+          # Strip the YAML/heredoc indentation without altering credential contents.
+          notes = '\n'.join(line.removeprefix('          ') for line in notes.splitlines()) + '\n'
+          Path('release-notes.md').write_text(notes)
+          PY
+          gh release create "$RELEASE_TAG" \
+            --target "$BUILD_SHA" \
+            --title "VolksPC Kali ARM64 — build $BUILD_RUN_ID (experimental)" \
+            --prerelease \
+            --notes-file release-notes.md \
+            release-assets/volkspcimgarm64.zip \
+            release-assets/credentials.txt \
+            release-assets/SHA256SUMS
+
+      - name: Link published release
+        run: |
+          url=$(gh release view "$RELEASE_TAG" --json url --jq .url)
+          printf '## Experimental Kali release\n\n[Download image, credentials and checksums](%s)\n' "$url" >> "$GITHUB_STEP_SUMMARY"
