@@ -56,12 +56,12 @@ jobs:
               rel=str(p.relative_to(root))
               if rel not in owned:
                   print('CUSTOM PROGRAM',rel,'bytes',p.stat().st_size)
-          for rel in ['usr/bin/startxfce4','home/desktop/.bash_profile']:
+          for rel in ['usr/bin/forcereadme','usr/bin/setcursor','etc/xdg/xfce4/xinitrc','etc/profile','etc/profile.d/volkspc.sh']:
               print('SCRIPT',rel)
-              print((root/rel).read_text(errors='replace'))
+              if (root/rel).is_file(): print((root/rel).read_text(errors='replace'))
           for rel in ['usr/bin/xfce4-session','usr/bin/xfdesktop','usr/bin/forcereadme']:
               p=root/rel
-              if not p.is_file():continue
+              if not p.is_file() or p.read_bytes()[:4] != b'\\x7fELF':continue
               print('PROGRAM DETAILS',rel)
               print(subprocess.check_output(['readelf','-d',str(p)],text=True))
               strings=subprocess.check_output(['strings',str(p)],text=True,errors='replace')
