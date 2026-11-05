@@ -56,9 +56,10 @@ jobs:
           PY
       - name: Check dependencies of every X client Kali autostarts or the panel loads
         run: |
-          sudo mount --bind /dev k/dev 2>/dev/null || true
-          sudo umount k 2>/dev/null || true
+          sudo umount k
           sudo mount -t ext4 -o loop kali/linuxfs.img k
+          echo '===== xautoresize-launcher'; cat k/usr/bin/xautoresize-launcher 2>/dev/null || find k/usr -name 'xautoresize*' | head
+          echo '===== im-config / ibus env'; grep -rs 'IM_MODULE' k/etc/profile.d k/etc/environment k/etc/X11/Xsession.d k/etc/environment.d | head
           sudo mount --bind /proc k/proc
           sudo chroot k /usr/bin/env LD_LIBRARY_PATH=/opt/volkspc/lib /bin/bash -c '
             for p in /usr/bin/xfwm4 /usr/bin/xfce4-panel /usr/bin/xfsettingsd /usr/bin/xfce4-power-manager /usr/bin/xfce4-screensaver /usr/bin/light-locker /usr/bin/nm-applet /usr/bin/blueman-applet /usr/bin/xiccd /usr/bin/xfce4-notifyd /usr/lib/aarch64-linux-gnu/xfce4/notifyd/xfce4-notifyd /usr/lib/aarch64-linux-gnu/xfce4/panel/wrapper-2.0 /usr/bin/xfce4-terminal /usr/bin/qterminal /usr/bin/thunar; do
